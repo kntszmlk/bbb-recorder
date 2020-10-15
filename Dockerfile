@@ -4,10 +4,7 @@ FROM  node
 # Create app directory
 WORKDIR /root
 # LABEL about the custom image
-LABEL maintainer="arbi20.arakelian@gmail.com"
-LABEL version="0.1"
-LABEL description="This is custom Docker Image for"
-
+RUN mkdir /root/bbb-recorder
 #Update Software Repository
 RUN mkdir -p /home/node/app/node_modules && chown -R node:node /home/node/app
 #RUN apt-get -y curl
@@ -20,6 +17,8 @@ RUN add-apt-repository ppa:jonathonf/ffmpeg-4
 #RUN apt-get -y update
 RUN apt-get -y install ffmpeg
 RUN apt -y install xvfb
-RUN git clone https://github.com/jibon57/bbb-recorder
-RUN cd bbb-recorder && npm install --ignore-scripts
+#RUN git clone https://github.com/jibon57/bbb-recorder
+
 WORKDIR /root/bbb-recorder
+COPY . .
+RUN npm install --ignore-scripts

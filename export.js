@@ -37,6 +37,122 @@ if(platform == "linux"){
     options.executablePath = "/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome"
 }
 
+async function start(url, exportname, duration, convert){
+    let browser, page;
+
+    try{
+        if(platform == "linux"){
+            xvfb.startSync()
+        }
+
+        if(!url){
+            console.warn('URL undefined!');
+            return false;
+        }
+        // Verify if recording URL has the correct format
+        var urlRegex = new RegExp('^https?:\\/\\/.*\\/playback\\/presentation\\/2\\.0\\/' + playbackFile + '\\?meetingId=[a-z0-9]{40}-[0-9]{13}');
+        if(!urlRegex.test(url)){
+            console.warn('Invalid recording URL!');
+            process.exit(1);
+        }
+
+        // Use meeting ID as export name if it isn't defined or if its value is "MEETING_ID"
+        if(!exportname || exportname == "MEETING_ID"){
+            exportname = url.split("=")[1] + '.webm';
+        }
+
+        // If duration isn't defined, set it in 0
+        if(!duration){
+            duration = 0;
+        // Check if duration is a natural number
+        }else if(!Number.isInteger(Number(duration)) || duration < 0){
+            console.warn('Duration must be a natural number!');
+            process.exit(1);
+        }
+
+        if(!convert){
+            convert = false
+        }else if(convert !== "true" && convert !== "false"){
+            console.warn("Invalid convert value!");
+            process.exit(1);
+        }
+
+        browser = await puppeteer.launch(options)
+        const pages = await browser.pages()
+
+        page = pages[0]
+
+        page.on('console', msg => {
+            var m = msg.text();
+            //console.log('PAGE LOG:', m) // uncomment if you need
+        });
+
+        await page._client.send('Emulation.clearDeviceMetricsOverride')
+        // Catch URL unreachable error
+        await page.goto(url, {waitUntil: 'networkidle2'}).catch(e => {
+            console.error('Recording URL unreachable!');
+            process.exit(2);
+        })
+        await page.setBypassCSP(true)
+
+        // Check if recording exists (search "Recording not found" message)
+        var loadMsg = await page.evaluate(() => {
+            return document.getElementById("load-msg").textContent;
+        });
+        if(loadMsg == "Recording not found"){
+            console.warn("Recording not found!");
+            process.exit(1);
+        }
+
+        // Get recording duration
+        var recDuration = await page.evaluate(() => {
+            return document.getElementById("video").duration;
+        });
+        // If duration was set to 0 or is greater than recDuration, use recDuration value
+        if(duration == 0 || duration > recDuration){
+            duration = recDuration;
+        }
+
+        await page.waitForSelector('button[class=acorn-play-button]');
+        await page.$eval('#navbar', element => element.style.display = "none");
+        await page.$eval('#copyright', element => element.style.display = "none");
+        await page.$eval('.acorn-controls', element => element.style.opacity = "0");
+        await page.click('button[class=acorn-play-button]', {waitUntil: 'domcontentloaded'});
+
+        await page.evaluate((x) => {
+            console.log("REC_START");
+            window.postMessage({type: 'REC_START'}, '*')
+        })
+
+        // Perform any actions that have to be captured in the exported video
+        await page.waitFor((duration * 1000))
+
+        await page.evaluate(filename=>{
+            window.postMessage({type: 'SET_EXPORT_PATH', filename: filename}, '*')
+            window.postMessage({type: 'REC_STOP'}, '*')
+        }, exportname)
+
+        // Wait for download of webm to complete
+        await page.waitForSelector('html.downloadComplete', {timeout: 0})
+
+        if(convert){
+            convertAndCopy(exportname)
+        }else{
+            copyOnly(exportname)
+        }
+
+    }catch(err) {
+        console.log(err)
+    } finally {
+        page.close && await page.close()
+        browser.close && await browser.close()
+
+        if(platform == "linux"){
+            xvfb.stopSync()
+        }
+    }
+}
+
 async function main() {
     let browser, page;
 
@@ -157,7 +273,7 @@ async function main() {
     }
 }
 
-main()
+//main()
 
 function convertAndCopy(filename){
 
@@ -233,3 +349,4 @@ function copyOnly(filename){
         console.log(err)
     }
 }
+module.exports = {start}
