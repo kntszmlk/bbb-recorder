@@ -17,6 +17,7 @@ RUN add-apt-repository ppa:jonathonf/ffmpeg-4
 #RUN apt-get -y update
 RUN apt-get -y install ffmpeg
 RUN apt -y install xvfb
+RUN apt -y install gconf-service libgconf-2-4 libappindicator1 fonts-noto
 #RUN git clone https://github.com/jibon57/bbb-recorder
 
 WORKDIR /root/bbb-recorder
