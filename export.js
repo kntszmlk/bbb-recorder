@@ -23,6 +23,7 @@ var options = {
         '--disable-extensions-except=' + __dirname,
         '--disable-infobars',
         '--no-sandbox',
+        '--disable-setuid-sandbox',
         '--shm-size=1gb',
         '--disable-dev-shm-usage',
         '--start-fullscreen',
