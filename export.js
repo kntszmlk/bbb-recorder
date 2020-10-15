@@ -15,7 +15,6 @@ var width = 1280;
 var height = 720;
 var options = {
     headless: false,
-    executablePath = '/usr/bin/google-chrome',
     args: [
         '--enable-usermedia-screen-capturing',
         '--allow-http-screen-capture',
