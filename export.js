@@ -87,7 +87,7 @@ async function start(url, exportname, duration, convert) {
 
         page.on('console', msg => {
             var m = msg.text();
-            //console.log('PAGE LOG:', m) // uncomment if you need
+            console.log('PAGE LOG:', m) // uncomment if you need
         });
 
         await page._client.send('Emulation.clearDeviceMetricsOverride')
@@ -102,6 +102,7 @@ async function start(url, exportname, duration, convert) {
         var loadMsg = await page.evaluate(() => {
             return document.getElementById("load-msg").textContent;
         });
+        console.log(loadMsg);
         if (loadMsg == "Recording not found") {
             console.warn("Recording not found!");
             process.exit(1);
